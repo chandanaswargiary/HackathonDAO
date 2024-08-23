@@ -1,1 +1,52 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract HackathonReward {
+
+    address public admin;
+    uint256 public rewardAmount;
+    mapping(address => bool) public participants;
+    mapping(address => bool) public rewarded;
+
+    event ParticipantRegistered(address participant);
+    event RewardDistributed(address participant, uint256 amount);
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can call this");
+        _;
+    }
+
+    modifier onlyRegistered() {
+        require(participants[msg.sender], "Not a registered participant");
+        _;
+    }
+
+    constructor(uint256 _rewardAmount) {
+        admin = msg.sender;
+        rewardAmount = _rewardAmount;
+    }
+
+    function registerParticipant(address _participant) public onlyAdmin {
+        participants[_participant] = true;
+        emit ParticipantRegistered(_participant);
+    }
+
+    function distributeReward() public onlyRegistered {
+        require(!rewarded[msg.sender], "Reward already claimed");
+        require(address(this).balance >= rewardAmount, "Insufficient contract balance");
+        
+        rewarded[msg.sender] = true;
+        payable(msg.sender).transfer(rewardAmount);
+        emit RewardDistributed(msg.sender, rewardAmount);
+    }
+
+    // Function to receive Ether into the contract
+    receive() external payable {}
+    
+    // Function to withdraw Ether by the admin
+    function withdraw(uint256 _amount) public onlyAdmin {
+        require(address(this).balance >= _amount, "Insufficient balance");
+        payable(admin).transfer(_amount);
+    }
+}
 
